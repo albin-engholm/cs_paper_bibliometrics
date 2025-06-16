@@ -24,11 +24,14 @@ keywords = [
 BASE_URL = "https://api.openalex.org/works"
 
 # Function to fetch publication year counts using group_by
-def fetch_publication_counts(keyword,journal_only=False):
-    journal_only=journal_only
+def fetch_publication_counts(keyword, journal_only=False):
+    # Wrap multi-word keywords in quotes to enforce exact phrase ordering
+    search_term = f'"{keyword}"' if " " in keyword else keyword
+
+    journal_only = journal_only
     if journal_only:
         params = {
-            "search": keyword,
+            "search": search_term,
             "group_by": "publication_year",
             "mailto": "your_email@example.com",
             "filter": "primary_location.source.type:journal"
@@ -37,7 +40,7 @@ def fetch_publication_counts(keyword,journal_only=False):
 
     else:
         params = {
-            "search": keyword,
+            "search": search_term,
             "group_by": "publication_year",
             "mailto": "your_email@example.com"
         }
@@ -71,7 +74,9 @@ for kw, counts in all_data.items():
 df.index = pd.to_numeric(df.index)
 df.sort_index(inplace=True)
 df_complete = df.copy()
-df = df[(df.index>1899) & (df.index<2024)]
+start_year = 1950
+end_year = 2023
+df = df[(df.index >= start_year) & (df.index <= end_year)]
 # Plot results
 plt.figure(figsize=(14, 8))
 for column in df.columns:
@@ -87,5 +92,21 @@ plt.tight_layout()
 plt.show()
 df.to_csv("openalex_keyword_trends_by_year.csv")
 df.tail()
+
+# Calculate relative growth indexed to the start year
+base_counts = df.loc[start_year]
+relative_df = df.divide(base_counts)
+
+# Plot relative growth
+plt.figure(figsize=(14, 8))
+for column in relative_df.columns:
+    plt.plot(relative_df.index, relative_df[column], label=column)
+plt.xlabel("Year")
+plt.ylabel("Relative Growth (Base Year = 1)")
+plt.title(f"Relative Growth Indexed to {start_year}")
+plt.legend(loc="upper left", fontsize="small")
+plt.grid(True)
+plt.tight_layout()
+plt.show()
 
 # %%
